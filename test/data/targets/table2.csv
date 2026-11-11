@@ -1,0 +1,10 @@
+statistic,Fifth-best,Fourth-best,Third-best,Second-best,First-best
+Small-sample bias,1.1699e-2,3.89e-5,2.18e-5,1.926e-5,2e-8
+Asymptotic bias,1.1700e-2,3.90e-5,2.20e-5,1.927e-5,0
+Small-sample variance,1.791e-8,1.4414e-9,1.59e-9,9.41e-10,9e-11
+Asymptotic variance,1.788e-8,1.4409e-9,1.58e-9,9.37e-10,8e-11
+Small-sample RMSE,1.1699e-2,5.437e-5,4.543e-5,3.622e-5,9.4e-6
+Asymptotic RMSE,1.1700e-2,5.442e-5,4.546e-5,3.618e-5,8.9e-6
+Small-sample relative bias,182,.61,.18,.15,-.00045
+Small-sample relative variance,82502,1.15,.11,.053,.0043
+Small-sample relative RMSE,340,1.24,.37,.28,.065

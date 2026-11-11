@@ -1,0 +1,137 @@
+% Vignette of the Pollis method TwoScalesVolatility
+% Compile with: julia -e 'using PollisTeX; display(compile("TwoScalesVolatility.tex"))'
+\input{vignette_style}
+\renewcommand{\vignetteauthor}{Antonio Saragga Seabra}
+\renewcommand{\vignettedate}{11 November 2026}
+\renewcommand{\vignettelicense}{the MIT License}
+
+\begin{document}
+
+\nmhead{High-frequency volatility}
+  {Two-Scales Realized Volatility}
+  {The daily variance of a price observed every second through market noise: the two-scales estimator of Zhang,
+   Mykland and Aït-Sahalia (2005), with their Monte Carlo study reproduced.}
+
+\factsheet
+  {\nmcite{zma2005}{Zhang, Mykland and Aït-Sahalia (2005)}, \emph{Journal of the American Statistical Association}:
+   Table~2 (p.\,1405), the five estimators of the integrated variance on 25,000 simulated days of the Heston model;
+   no data. Also a known volatility, and \fn{rTSCov} of the R package highfrequency 1.0.3.}
+  {the two-scales estimator as the article writes it. \nmcite{bk2022}{Baumann and Klymak (2022)}, in
+   HighFrequencyCovariance.jl, apply its correction to volatilities, the square roots of the realized variances, not to
+   the variances.}
+  {\fn{TwoScalesVolatility.jl}}
+  {43 of the 45 printed values tested. The 4 that the theory gives without simulation: 3 to every printed digit, 1 off
+   by one in the last. The 39 simulated: all within the noise of a second run, the largest gap 2.49 standard errors.}
+
+\nmsection{The problem}
+The sum of a day's squared returns estimates its integrated variance $\langle X,X\rangle_T=\int_0^T\sigma_t^2\,dt$
+when prices carry no error. With noise, $Y_{t_i}=X_{t_i}+\varepsilon_{t_i}$, it grows like $2n\,E\varepsilon^2$ with
+the $n$ returns: every second, it measures the noise. Five-minute returns throw most of the data away and keep a bias;
+the article combines two time scales to remove it with all the data.
+
+\nmsection{The method}
+Table~2 ranks five estimators: every tick, $[Y,Y]^{(\mathrm{all})}$ (fifth-best); every five minutes (fourth-best);
+sparse returns at the optimal step (third-best); the average $[Y,Y]^{(\mathrm{avg})}$ of the realized variances of $K$
+regular sub-grids of the optimal size, equation~(32) (second-best); and the two-scales estimator (first-best),
+equations~(55) and~(64):
+\[
+\widehat{\langle X,X\rangle}_T=\Bigl(1-\frac{\bar n}{n}\Bigr)^{-1}\Bigl([Y,Y]^{(\mathrm{avg})}_T-\frac{\bar n}{n}\,[Y,Y]^{(\mathrm{all})}_T\Bigr),
+\qquad \bar n=\frac{n-K+1}{K},\qquad K=c^*n^{2/3},\quad
+c^*=\Bigl(\frac{T}{12\,(E\varepsilon^2)^2}\int_0^T\sigma_t^4\,dt\Bigr)^{-1/3}.
+\]
+The noise variance is $[Y,Y]^{(\mathrm{all})}/(2n)$, equation~(22), or $([Y,Y]^{(\mathrm{all})}-[Y,Y]^{(\mathrm{avg})})/(2(n-\bar n))$, equation~(65).
+
+\fn{realized\_variance}, \fn{sparse\_variance}, \fn{average\_variance} and \fn{two\_scales\_variance} return the four
+statistics from a day's log prices, \fn{noise\_variance} equation~(22) or, given $K$, (65), and \fn{optimal\_sparse},
+\fn{optimal\_average} and \fn{optimal\_c} the tuning. \fn{HestonDesign} holds the design: the model of
+\nmcite{heston1993}{Heston (1993)}, $\mu=0.05$, $\kappa=5$, $\alpha=0.04$, $\gamma=0.5$, $\rho=-0.5$, noise of standard
+deviation 0.0005, 23,400 one-second prices in a day of $T=1/252$ years. \fn{simulate\_day} draws a day by the Euler
+scheme, \fn{table2} returns Table~2 as a $9\times5$ matrix and \fn{monte\_carlo\_table2} adds its standard errors;
+\fn{simulate\_constant\_day} and \fn{recovery} test a known volatility. Four choices the article leaves unsaid are
+inferred: the variance starts from its stationary Gamma law (shape 1.6, scale 0.025), which the five-minute asymptotic
+variance fits; each day is tuned with its own quarticity and the true noise variance; the sparse and averaged
+estimators cover the whole day, as the small-sample biases show; variances are taken within $50\times5$ bins of the
+days by integrated variance, then quarticity.
+
+\nmsection{What the tests show}
+A known volatility of 1\% a day (integrated variance $10^{-4}$), noise of 0 to 20 basis points, $K=c^*n^{2/3}$ (2, 35,
+87, 219); means over 400 days. Its sub-grids leave out $K-1$ ticks on average, so the estimator is
+expected to give $10^{-4}(1-K/(n+1))$.
+{\footnotesize
+\begin{valuetable}{@{}lXrrrrc@{}}
+\textbf{Value} & & \textbf{0 bp} & \textbf{5 bp} & \textbf{10 bp} & \textbf{20 bp} & \\\midrule
+Integrated variance & Expected & 9.999e-5 & 9.985e-5 & 9.963e-5 & 9.906e-5 & \\
+ & Julia & 9.989e-5 & 9.947e-5 & 9.961e-5 & 1.0036e-4 & \ok\\
+Noise variance, (65) & Known & 0 & 2.500e-7 & 1.000e-6 & 4.000e-6 & \\
+ & Julia & 2.2e-12 & 2.503e-7 & 1.001e-6 & 3.998e-6 & \ok\\
+\end{valuetable}}
+Against \fn{rTSCov} of R highfrequency 1.0.3, one day each at 5 bp ($K=35$), 10 bp ($K=87$), 20 bp ($K=219$) and 5 bp
+($K=300$), the relative differences are $2.1\times10^{-7}$, $9.1\times10^{-7}$, $3.4\times10^{-6}$ and
+$1.8\times10^{-7}$, under the $10^{-5}$ tested: highfrequency counts the $n+1$ prices where the article counts the $n$
+returns, in $\bar n$ and $\bar n/n$.
+
+Table~2, p.\,1405, published above Julia (25,000 days). A simulated value is compared as Pollis compares random values:
+the gap beyond the rounding of the printed value, in standard errors of the difference of two runs, $z$, must be
+under~3. The cells in bold, given by the theory, are tested to the digits printed; the two in grey are not tested.
+{\footnotesize
+\begin{valuetable}{@{}Xlrrrrrrc@{}}
+\textbf{Row} & & \textbf{Fifth} & \textbf{Fourth} & \textbf{Third} & \textbf{Second} & \textbf{First} & \textbf{Largest $z$} & \\\midrule
+Small-sample bias & Published & 1.1699e-2 & 3.89e-5 & 2.18e-5 & 1.926e-5 & 2e-8 & & \\
+ & Julia & 1.1702e-2 & 3.91e-5 & 2.19e-5 & 1.930e-5 & -7e-8 & 1.85 & \ok\\
+Asymptotic bias & Published & \textbf{1.1700e-2} & \textbf{3.90e-5} & 2.20e-5 & 1.927e-5 & \textbf{0} & & \\
+ & Julia & \textbf{1.1700e-2} & \textbf{3.90e-5} & 2.19e-5 & 1.912e-5 & \textbf{0} & 1.63 & \ok\\
+Small-sample variance & Published & 1.791e-8 & 1.4414e-9 & 1.59e-9 & 9.41e-10 & 9e-11 & & \\
+ & Julia & 1.783e-8 & 1.4099e-9 & 1.62e-9 & 9.62e-10 & 9e-11 & 1.18 & \ok\\
+Asymptotic variance & Published & 1.788e-8 & 1.4409e-9 & 1.58e-9 & 9.37e-10 & 8e-11 & & \\
+ & Julia & 1.787e-8 & 1.4280e-9 & 1.58e-9 & 9.35e-10 & 8e-11 & 1.47 & \ok\\
+Small-sample RMSE & Published & 1.1699e-2 & 5.437e-5 & 4.543e-5 & 3.622e-5 & 9.4e-6 & & \\
+ & Julia & 1.1702e-2 & 5.423e-5 & 4.580e-5 & 3.653e-5 & 9.4e-6 & 2.49 & \ok\\
+Asymptotic RMSE & Published & \textbf{1.1700e-2} & 5.442e-5 & 4.546e-5 & 3.618e-5 & 8.9e-6 & & \\
+ & Julia & \textbf{1.1701e-2} & 5.430e-5 & 4.532e-5 & 3.606e-5 & 8.9e-6 & 0.85 & \ok\\
+Relative bias & Published & 182 & .61 & .18 & .15 & -.00045 & & \\
+ & Julia & 181 & .60 & .17 & .15 & -.00147 & 1.76 & \ok\\
+Relative variance & Published & {\color{soft}82502} & 1.15 & .11 & .053 & .0043 & & \\
+ & Julia & {\color{soft}123200} & 1.06 & .11 & .056 & .0042 & 1.48 & \ok\\
+Relative RMSE & Published & {\color{soft}340} & 1.24 & .37 & .28 & .065 & & \\
+ & Julia & {\color{soft}395} & 1.19 & .37 & .28 & .065 & 0.13 & \ok\\
+\end{valuetable}}
+
+\nmsub{Where they differ}
+\begin{itemize}
+  \item \textbf{Asymptotic RMSE, fifth-best:} $\sqrt{0.0117^2+1.787\times10^{-8}}=0.0117008$ rounds to 1.1701e-2, one
+    unit above the printed 1.1700e-2.
+  \item \textbf{Simulated values} differ in their digits, as two runs must: the five-minute small-sample variance by
+    315 units of its last digit, at $z=0.98$. The first-best biases carry the $-K/(n+1)$ of the ticks left out.
+  \item \textbf{Not tested:} the fifth-best relative variance and RMSE. The integrated variance has a Gamma law of shape
+    1.6, so the mean of its inverse square is infinite and they never settle (standard errors 79,700 and 101).
+  \item \textbf{Known volatility:} every mean within 3 standard errors of what is expected (the largest gap 2.34, the
+    noise variance at 5 bp), the integrated variance within 0.6\% of $10^{-4}$.
+\end{itemize}
+
+\nmsection{Still open}
+Figures~1 and~2 are not reproduced. The article does not say whether its optimal estimators are tuned with true or
+estimated values; the true ones are used here.
+
+\nmsection{Further considerations}
+\begin{itemize}
+  \item \textbf{A limit.} The noise is independent of the price and from tick to tick, the prices equally spaced; a
+    jump in the day enters the estimate.
+  \item \textbf{An extension.} More than two scales, or dependent noise, each tested against its own article; the
+    correction applied to variances could be offered to HighFrequencyCovariance.jl.
+\end{itemize}
+
+\nmsection{References}
+{\footnotesize
+\nmref{zma2005}{Zhang, L., Mykland, P. A. and Aït-Sahalia, Y. (2005). A tale of two time scales: determining integrated
+  volatility with noisy high-frequency data. \emph{Journal of the American Statistical Association} 100(472),
+  1394--1411. \nmdoi{10.1198/016214505000000169}}
+\nmref{bk2022}{Baumann, S. and Klymak, M. (2022). HighFrequencyCovariance: a Julia package for estimating covariance
+  matrices using high frequency financial data. \emph{Journal of Statistical Software} 103(14).
+  \nmdoi{10.18637/jss.v103.i14}}
+\nmref{heston1993}{Heston, S. L. (1993). A closed-form solution for options with stochastic volatility with
+  applications to bond and currency options. \emph{Review of Financial Studies} 6(2), 327--343.
+  \nmdoi{10.1093/rfs/6.2.327}}
+}
+
+\nmcredit
+\end{document}

@@ -1,0 +1,15 @@
+# The vignette of TwoScalesVolatility.jl, written by Pollis (Package and Publish, on the page of an article method) and shown in
+# Help > Documentation > Package Vignettes once the package is installed.
+
+article = "https://www.princeton.edu/~yacine/twoscales.pdf"
+author = "Antonio Saragga Seabra"
+citation = "Zhang, L., Mykland, P. A. and Aït-Sahalia, Y. (2005). A tale of two time scales: determining integrated volatility with noisy high-frequency data. Journal of the American Statistical Association 100(472), 1394–1411."
+description = "The two-scales realized volatility of Zhang, Mykland and Aït-Sahalia (2005): the integrated variance of a day from prices observed every second with market microstructure noise, the average of the realized variances of K sub-grids less a multiple of the realized variance of every tick, with the small-sample adjustment; the noise variance; the optimal sparse step, sub-grid size and K; and the Monte Carlo study of their Table 2 on the Heston model."
+license = "MIT"
+method = "Two-Scales Realized Volatility"
+package = "TwoScalesVolatility"
+repository = "https://github.com/Trumpingtons/TwoScalesVolatility.jl"
+source = "TwoScalesVolatility.tex"
+title = "Two-Scales Realized Volatility"
+topic = "High-Frequency Volatility"
+version = "0.1.0"
