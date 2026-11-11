@@ -1,7 +1,7 @@
 authors = ["Antonio Saragga Seabra"]
 name = "TwoScalesVolatility"
 uuid = "88ce6367-b423-44b4-82fc-2e0e39842074"
-version = "0.1.0"
+version = "0.1.1"
 
 [compat]
 Distributions = "0.25"
